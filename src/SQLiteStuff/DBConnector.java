@@ -4,6 +4,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
+@SuppressWarnings("unused")
 public class DBConnector {
 
     Connection connection;

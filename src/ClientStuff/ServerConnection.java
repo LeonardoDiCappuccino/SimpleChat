@@ -1,8 +1,8 @@
 package ClientStuff;
 
 import java.io.*;
-import java.lang.reflect.Method;
 import java.net.Socket;
+import java.util.concurrent.*;
 
 @SuppressWarnings("unused")
 public class ServerConnection {
@@ -64,50 +64,50 @@ public class ServerConnection {
 
     private void receivingMessages() {
         while (isConnected()) {
+            Object message = getNextMessage();
+
             try {
-                int length = reader.readInt();
-                if (length < 1)
-                    return;
-
-                byte[] bytes = new byte[length];
-                reader.readFully(bytes);
-
-                boolean isObject = reader.readBoolean();
-                reader.readFully(bytes);
-
-                //Call messageEvent
-                if (isObject) {
-                    Object object;
-                    try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-                         ObjectInputStream ois = new ObjectInputStream(bis)) {
-                        object = ois.readObject();
-                    } catch (IOException | ClassNotFoundException ignore) {
-                        return;
-                    }
-
-                    serverEvents.messageEvent(this, object);
-                } else
-                    serverEvents.messageEvent(this, bytes);
-
-            } catch (EOFException e) {
-                //On lost connection
-                closeSocketAndStreams();
-                try {
-                    serverEvents.lostConnection(this);
-                } catch (InterruptedException ignore) {
-                }
-
-                //If no reconnected happens close current Thread
-                if (!isConnected())
-                    messageListenerThread.interrupt();
-
-            } catch (IOException e) {
-                if (isConnected())
-                    throw new RuntimeException(e);
-
-            } catch (InterruptedException ignore) {
+                if (message instanceof byte[])
+                    serverEvents.receivedMessage(this, (byte[]) message);
+                else
+                    serverEvents.receivedMessage(this, message);
+            } catch (InterruptedException ignored) {
             }
         }
+    }
+
+    private Object getNextMessage() {
+        try {
+            int length = reader.readInt();
+            if (length < 1)
+                return null;
+
+            byte[] bytes = new byte[length];
+            boolean isObject = reader.readBoolean();
+
+            reader.readFully(bytes);
+
+            //Call messageEvent
+            if (isObject) {
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+                     ObjectInputStream ois = new ObjectInputStream(bis)) {
+                    return ois.readObject();
+                } catch (IOException | ClassNotFoundException e) {
+                    System.err.println(e.getMessage());
+                    return null;
+                }
+            } else return bytes;
+
+        } catch (EOFException e) {
+            //On lost connection
+            lostConnectionHandling();
+
+        } catch (IOException e) {
+            if (!socket.isClosed())
+                throw new RuntimeException(e);
+        }
+
+        return null;
     }
 
     public void send(byte[] bytes) {
@@ -118,7 +118,8 @@ public class ServerConnection {
 
             writer.write(bytes);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            //Connection failed
+            closeConnection();
         }
     }
 
@@ -136,12 +137,33 @@ public class ServerConnection {
             writer.writeBoolean(true);
 
             writer.write(messageBytes);
-        } catch (IOException e) {
+
+        } catch (NotSerializableException e) {
             throw new RuntimeException(e);
+
+        } catch (IOException e) {
+            //Connection failed
+            closeConnection();
         }
     }
 
-    public void closeConnection() {
+    public Object catchResponse() {
+        return getNextMessage();
+    }
+
+    public Object catchResponse(int timeout) {
+        Future<Object> responseCatcher = Executors.newSingleThreadExecutor()
+                .submit(this::getNextMessage);
+
+        try {
+            return responseCatcher.get(timeout, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            responseCatcher.cancel(true);
+            return null;
+        }
+    }
+
+    public synchronized void closeConnection() {
         if (!isConnected())
             return;
 
@@ -165,5 +187,18 @@ public class ServerConnection {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void lostConnectionHandling() {
+        closeSocketAndStreams();
+
+        try {
+            serverEvents.lostConnection(this);
+        } catch (InterruptedException ignore) {
+        }
+
+        //If no reconnected happens close current Thread
+        if (!isConnected())
+            messageListenerThread.interrupt();
     }
 }

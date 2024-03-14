@@ -1,6 +1,7 @@
 package ServerStuff;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -12,7 +13,7 @@ public class Server {
     private final ServerSocket serverSocket;
     private final Thread connectionListenerThread;
 
-    private final List<ClientHandler> connections = new LinkedList<>();
+    private final List<ClientHandler> clients = new LinkedList<>();
 
     private final ClientEventListener clientEvents;
 
@@ -32,7 +33,7 @@ public class Server {
     private void connectionFetching() {
         while (serverSocket != null && isOpen()) {
             try {
-                connections.add(new ClientHandler(serverSocket.accept(), clientEvents, connections));
+                clients.add(new ClientHandler(serverSocket.accept(), clientEvents, clients));
             } catch (IOException e) {
                 if (isOpen())
                     throw new RuntimeException(e);
@@ -41,17 +42,13 @@ public class Server {
     }
 
     public List<ClientHandler> getClientHandlers() {
-        return new ArrayList<>(connections);
-    }
-
-    public List<Client> getClients() {
-        return getClients(Client.class);
+        return new ArrayList<>(clients);
     }
 
     public <T extends Client> List<T> getClients(Class<T> targetType) {
-        ArrayList<T> out = new ArrayList<>(connections.size());
+        ArrayList<T> out = new ArrayList<>(clients.size());
 
-        for (ClientHandler clientHandler : connections) {
+        for (ClientHandler clientHandler : clients) {
             Client client = clientHandler.getBoundedClient();
             if (client != null)
                 if (targetType.isInstance(client))
@@ -62,10 +59,32 @@ public class Server {
         return out;
     }
 
+    public void sendToAll(byte[] object) {
+        for(ClientHandler client : clients)
+            client.send(object);
+    }
+
+    public void sendToAll(Serializable object) {
+        for(ClientHandler client : clients)
+            client.send(object);
+    }
+
+    public void sendToAll(Class<Client> targetType, byte[] object) {
+        List<Client> targetClients = getClients(targetType);
+        for(Client client : targetClients)
+            client.send(object);
+    }
+
+    public void sendToAll(Class<Client> targetType, Serializable object) {
+        List<Client> targetClients = getClients(targetType);
+        for(Client client : targetClients)
+            client.send(object);
+    }
+
     public void close() {
         connectionListenerThread.interrupt();
 
-        for (ClientHandler handler : connections)
+        for (ClientHandler handler : clients)
             handler.closeConnection();
 
         try {

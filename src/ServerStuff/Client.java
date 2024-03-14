@@ -1,7 +1,5 @@
 package ServerStuff;
 
-import ClientStuff.ServerConnection;
-
 import java.io.Serializable;
 import java.net.Socket;
 
@@ -35,11 +33,9 @@ public abstract class Client {
         return boundedHandler.isConnected();
     }
 
-    public abstract void messageEvent(byte[] bytes);
+    public abstract void receivedMessage(byte[] bytes);
 
-    public abstract void messageEvent(Object object);
+    public abstract void receivedMessage(Object object);
 
-    public abstract void lostConnection() throws InterruptedException;
-
-    public abstract void disconnectionEvent();
+    public abstract void lostConnection();
 }

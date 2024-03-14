@@ -1,41 +1,31 @@
 package ServerStuff;
 
-import java.util.List;
+import Communication.Container;
 
 public class User extends Client {
 
-    private static int count = 0;
+    private final int userID;
 
-    private final int id;
-
-    public User(ClientHandler handler) {
-        super(handler);
-        id = count++;
-        System.out.println("Client" + id + " connected");
-    }
-
-    public int getId() {
-        return id;
+    public User(Container.Profile profile, ClientHandler boundedHandler) {
+        super(boundedHandler);
+        userID = profile.userID();
     }
 
     @Override
-    public void messageEvent(byte[] message) {
-        print("Client" + id + " says: " + new String(message));
+    public void receivedMessage(byte[] bytes) {
+
     }
 
     @Override
-    public void messageEvent(Object object) {
-        List<Integer> list = (List<Integer>) object;
-        for (int i : list)
-            System.out.println(i);
+    public void receivedMessage(Object object) {
     }
 
     @Override
-    public void disconnectionEvent() {
-        System.out.println("Client" + id + " disconnected");
+    public void lostConnection() {
+
     }
 
-    public static synchronized void print(String s) {
-        System.out.println(s);
+    public int getUserID() {
+        return userID;
     }
 }

@@ -1,9 +1,20 @@
 import ClientStuff.ServerConnection;
 import ClientStuff.ServerEventListener;
+import Communication.Packet;
+import Communication.ProtocolHeader;
+import Communication.SerializableImage;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -12,20 +23,6 @@ public class ClientMain {
     public static void main(String[] args) {
 
         ServerConnection client = new ServerConnection("localhost", 6969, events);
-
-        if (!client.isConnected())
-            return;
-
-        ArrayList<Integer> list = new ArrayList<>();
-        list.add(1);
-        list.add(2);
-        list.add(3);
-        list.add(4);
-        list.add(5);
-
-        client.send(list);
-
-        client.closeConnection();
     }
 
     private static final ServerEventListener events = new ServerEventListener() {
@@ -40,16 +37,29 @@ public class ClientMain {
                     return;
             }
             System.out.println("Server not found");
+            System.exit(0);
         }
 
         @Override
-        public void messageEvent(ServerConnection server, byte[] message) {
+        public void receivedMessage(ServerConnection server, byte[] bytes) {
+            if (Arrays.equals(bytes, "Hi client".getBytes())) {
+                server.send("Hi server".getBytes());
 
+                byte[] response = (byte[]) server.catchResponse();
+                if (Arrays.equals(response, "OK".getBytes()))
+                    System.out.println("Accepted");
+            }
         }
 
         @Override
-        public void messageEvent(ServerConnection server, Object object) {
-
+        public void receivedMessage(ServerConnection server, Object object) {
+            if (object.equals(ProtocolHeader.Image)) {
+                Object response = server.catchResponse();
+                if (response instanceof SerializableImage) {
+                    Image img = ((SerializableImage) response).getImage();
+                    Test.showImage(img);
+                }
+            }
         }
 
         @Override
