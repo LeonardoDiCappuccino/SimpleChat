@@ -5,7 +5,7 @@ import UI.Frame;
 public class ClientMain {
 
     public static void main(String[] args) {
-//        ServerConnection client = new ServerConnection("localhost", 6969, events);
+        ServerConnection client = new ServerConnection("localhost", 6969, events);
         Frame frame = Frame.getInstance();
 
     }

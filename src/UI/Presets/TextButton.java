@@ -5,8 +5,6 @@ import UI.Style;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.font.TextAttribute;
-import java.util.Map;
 
 public class TextButton extends JButton {
 

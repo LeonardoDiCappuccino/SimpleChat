@@ -3,7 +3,7 @@ import Communication.ProtocolInformation;
 import SQLiteStuff.ChatDB;
 import ServerStuff.*;
 
-public class ServerMain extends Thread {
+public class ServerMain {
 
     private static final ChatDB database = ChatDB.getInstance();
     private static Server server;
@@ -23,7 +23,7 @@ public class ServerMain extends Thread {
 
         @Override
         public void receivedMessage(ClientHandler handler, Object object) {
-            //Ignore everything but packets
+
             switch (object) {
                 case Container.LogInData data -> {
                     Container.Profile profile = database.getUserProfile(data.username(), data.password());

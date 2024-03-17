@@ -11,6 +11,8 @@ public class Button extends JButton {
     private float round = 0f;
     private boolean focus = false;
 
+    private Color backgroundColor;
+
     public Button() {
         setup();
     }
@@ -50,16 +52,16 @@ public class Button extends JButton {
             //Click behavior
             @Override
             public void mousePressed(MouseEvent e) {
-                setBackground(Style.changeBrightness(Style.DARK_V, 15));
+                setBackgroundColor(Style.changeBrightness(backgroundColor, 15));
                 repaint();
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (hover)
-                    setBackground(Style.changeBrightness(Style.DARK_V, 7));
+                    setBackgroundColor(Style.changeBrightness(backgroundColor, 7));
                 else
-                    setBackground(Style.DARK_V);
+                    setBackgroundColor(backgroundColor);
                 repaint();
             }
 
@@ -67,14 +69,14 @@ public class Button extends JButton {
             @Override
             public void mouseEntered(MouseEvent e) {
                 hover = true;
-                setBackground(Style.changeBrightness(Style.DARK_V, 7));
+                setBackgroundColor(Style.changeBrightness(backgroundColor, 7));
                 repaint();
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
                 hover = false;
-                setBackground(Style.DARK_V);
+                setBackgroundColor(backgroundColor);
                 repaint();
             }
         });
@@ -127,5 +129,15 @@ public class Button extends JButton {
     public void setRound(float round) {
         this.round = round;
         repaint();
+    }
+
+    @Override
+    public void setBackground(Color background) {
+        this.backgroundColor = background;
+        setBackgroundColor(background);
+    }
+
+    private void setBackgroundColor(Color backgroundColor) {
+        super.setBackground(backgroundColor);
     }
 }

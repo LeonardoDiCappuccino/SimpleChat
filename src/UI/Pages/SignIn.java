@@ -1,6 +1,7 @@
-package UI.Modules;
+package UI.Pages;
 
 import UI.Frame;
+import UI.Modules.ProfilePictureSelector;
 import UI.Presets.*;
 import UI.Presets.Button;
 import UI.Presets.TextField;

@@ -18,7 +18,7 @@ public class ChatDB extends DBConnector {
     private static final int MESSAGE_LOAD_LIMIT = 10;
 
     private ChatDB() {
-        super("./rsc/Chat.db");
+        super("./Chat.db");
     }
 
     public static ChatDB getInstance() {

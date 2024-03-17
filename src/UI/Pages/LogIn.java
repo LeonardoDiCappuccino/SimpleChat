@@ -1,4 +1,4 @@
-package UI.Modules;
+package UI.Pages;
 
 import UI.Frame;
 import UI.Presets.*;
