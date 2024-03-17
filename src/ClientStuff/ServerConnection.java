@@ -2,6 +2,7 @@ package ClientStuff;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.concurrent.*;
 
 @SuppressWarnings("unused")
@@ -110,7 +111,10 @@ public class ServerConnection {
         return null;
     }
 
-    public void send(byte[] bytes) {
+    public synchronized void send(byte[] bytes) {
+        if(!isConnected())
+            throw new RuntimeException(new SocketException("Socket is closed"));
+
         try {
             writer.writeInt(bytes.length);
             //Indicates a send raw byte[] (isObject)
@@ -123,7 +127,10 @@ public class ServerConnection {
         }
     }
 
-    public void send(Serializable object) {
+    public synchronized void send(Serializable object) {
+        if(!isConnected())
+            throw new RuntimeException(new SocketException("Socket is closed"));
+
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              ObjectOutputStream oos = new ObjectOutputStream(bos)) {
 
@@ -147,11 +154,27 @@ public class ServerConnection {
         }
     }
 
-    public Object catchResponse() {
+    public synchronized Object catchResponse() {
+        if(!isConnected())
+            throw new RuntimeException(new SocketException("Socket is closed"));
+
+        if (!messageListenerThread.equals(Thread.currentThread()))
+            throw new RuntimeException(new WrongThreadException(
+                    "'catchResponse' can only be called from 'receivedMessage' methods. " +
+                            "Leads to unexpected behavior"));
+
         return getNextMessage();
     }
 
-    public Object catchResponse(int timeout) {
+    public synchronized Object catchResponse(int timeout) {
+        if(!isConnected())
+            throw new RuntimeException(new SocketException("Socket is closed"));
+
+        if (!messageListenerThread.equals(Thread.currentThread()))
+            throw new RuntimeException(new WrongThreadException(
+                    "'catchResponse' can only be called from 'receivedMessage' methods. " +
+                            "Leads to unexpected behavior"));
+
         Future<Object> responseCatcher = Executors.newSingleThreadExecutor()
                 .submit(this::getNextMessage);
 

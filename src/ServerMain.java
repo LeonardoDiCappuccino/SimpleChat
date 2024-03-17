@@ -1,6 +1,5 @@
 import Communication.Container;
-import Communication.Packet;
-import Communication.ProtocolHeader;
+import Communication.ProtocolInformation;
 import SQLiteStuff.ChatDB;
 import ServerStuff.*;
 
@@ -25,54 +24,34 @@ public class ServerMain extends Thread {
         @Override
         public void receivedMessage(ClientHandler handler, Object object) {
             //Ignore everything but packets
-            if (!(object instanceof Packet packet))
-                return;
+            switch (object) {
+                case Container.LogInData data -> {
+                    Container.Profile profile = database.getUserProfile(data.username(), data.password());
 
-            //Check if it's a LogIn request
-            if (packet.isHead(ProtocolHeader.LogIn))
-                logInRequest(packet, handler);
-            else if (packet.getHead().equals(ProtocolHeader.SignIn))
-                signInRequest(packet, handler);
-            else
-                handler.send(ProtocolHeader.IllegalArgument);
+                    //If profile found, register user as connected, if not send error to client
+                    if(profile != null)
+                        new User(profile, handler);
+                    else
+                        handler.send(ProtocolInformation.InvalidLogInData);
+                }
+
+                case Container.SignInData data -> {
+                    Container.Profile profile = database.createUser
+                            (data.username(), data.password(), data.profilePicture());
+
+                    //If profile successfully created, register user as connected, if not send error to client
+                    if(profile != null)
+                        new User(profile, handler);
+                    else
+                        handler.send(ProtocolInformation.UsernameTaken);
+                }
+
+                default -> handler.send(ProtocolInformation.IllegalArgument);
+            };
         }
 
         @Override
         public void lostConnection(ClientHandler handler) {
         }
     };
-
-    public static void logInRequest(Packet packet, ClientHandler handler) {
-        //Checks if there are the correct amount of args
-        Object[] args = packet.getObjectList().toArray();
-        if (args.length != 2) {
-            handler.send(ProtocolHeader.IllegalArgument);
-            return;
-        }
-
-        //Checks if args have correct datatype
-        String username, password;
-        try {
-            username = (String) args[0];
-            password = (String) args[1];
-        } catch (ClassCastException e) {
-            handler.send(ProtocolHeader.IllegalArgument);
-            return;
-        }
-
-        Container.Profile profile = database.getUser(username, password);
-
-        //If user not found
-        if (profile == null) {
-            handler.send(ProtocolHeader.InvalidLogInData);
-            return;
-        }
-
-        //Register a user in the connection cash
-        new User(profile, handler);
-    }
-
-    public static void signInRequest(Packet packet, ClientHandler handler) {
-
-    }
 }

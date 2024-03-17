@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 
+@SuppressWarnings("unused")
 public class DBResult {
 
     /**
@@ -197,6 +198,10 @@ public class DBResult {
 
     public boolean isEmpty() {
         return dataSet[0].length < 1;
+    }
+
+    public int size() {
+        return dataSet[0].length;
     }
 
     @Override

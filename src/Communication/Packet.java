@@ -6,11 +6,11 @@ import java.util.List;
 
 public class Packet implements Serializable {
 
-    private final ProtocolHeader head;
+    private final ProtocolInformation head;
 
     private final List<Serializable> objectList = new LinkedList<>();
 
-    public Packet(ProtocolHeader head, Serializable... objects) {
+    public Packet(ProtocolInformation head, Serializable... objects) {
         this.head = head;
         objectList.addAll(List.of(objects));
     }
@@ -20,11 +20,11 @@ public class Packet implements Serializable {
         return this;
     }
 
-    public ProtocolHeader getHead() {
+    public ProtocolInformation getHead() {
         return head;
     }
 
-    public boolean isHead(ProtocolHeader compHead) {
+    public boolean isHead(ProtocolInformation compHead) {
         return head.equals(compHead);
     }
 

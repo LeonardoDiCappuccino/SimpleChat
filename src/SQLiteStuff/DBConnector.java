@@ -1,5 +1,6 @@
 package SQLiteStuff;
 
+import java.io.*;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -21,13 +22,13 @@ public class DBConnector {
         }
     }
 
-    public synchronized DBResult getResultSet(String sqlStatement) throws SQLException {
-        //Make sure SELECT statement is used
-        if (!sqlStatement.split(" ")[0].equalsIgnoreCase("SELECT"))
-            return null;
+    public synchronized DBResult getResultSet(String sqlStatement, Object... arguments) throws SQLException {
+        PreparedStatement preStatement = connection.prepareStatement(sqlStatement);
 
-        Statement statement = connection.createStatement();
-        ResultSet rs = statement.executeQuery(sqlStatement);
+        for (int i = 0; i < arguments.length; i++)
+            preStatement.setObject(i + 1, arguments[i]);
+
+        ResultSet rs = preStatement.executeQuery();
 
         int columCount = rs.getMetaData().getColumnCount();
 
@@ -51,17 +52,38 @@ public class DBConnector {
             for (int i = 0; i < columCount; i++) {
                 Object item = rs.getObject(i + 1);
                 if (item == null) item = DBResult.EMPTY;
+
+                //Deserializes Object if possible, if keep the byte[]
+                if (item instanceof byte[]) {
+                    Object deserializedObject = deserialize((byte[]) item);
+                    if (deserializedObject != null)
+                        item = deserializedObject;
+                }
+
                 resultQueues.get(i).add(item);
             }
 
         rs.close();
-        statement.close();
+        preStatement.close();
 
         return new DBResult(attributes, attributeTypes, resultQueues);
     }
 
     public synchronized void executeStatement(String sqlStatement, Object... arguments) throws SQLException {
+        //Look for arguments that should get serialized
+        String[] splitStatement = sqlStatement.split("\\?");
+        StringBuilder sb = new StringBuilder(splitStatement[0]);
+        for (int i = 0; i < splitStatement.length - 1; i++)
+            if (splitStatement[i + 1].charAt(0) == 'S') {
+                arguments[i] = serialize(arguments[i]);
+                sb.append('?').append(splitStatement[i + 1].substring(1));
+            } else
+                sb.append('?').append(splitStatement[i + 1]);
+
+        sqlStatement = sb.toString();
+
         PreparedStatement preStatement = connection.prepareStatement(sqlStatement);
+
         // set parameters
         for (int i = 0; i < arguments.length; i++)
             preStatement.setObject(i + 1, arguments[i]);
@@ -76,6 +98,26 @@ public class DBConnector {
             connection.close();
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private byte[] serialize(Object object) {
+        byte[] out;
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutputStream oos = new ObjectOutputStream(bos)) {
+            oos.writeObject(object);
+            return bos.toByteArray();
+        } catch (IOException e) {
+            return new byte[0];
+        }
+    }
+
+    private Object deserialize(byte[] bytes) {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+             ObjectInputStream ois = new ObjectInputStream(bis)) {
+            return ois.readObject();
+        } catch (IOException | ClassNotFoundException ignore) {
+            return null;
         }
     }
 }

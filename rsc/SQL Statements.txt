@@ -1,0 +1,3 @@
+SELECT id, name, profilePicture FROM Users 
+WHERE id IN (SELECT user1 FROM ChatRooms WHERE user2 = 1)
+OR id IN (SELECT user2 FROM ChatRooms WHERE user1 = 1);

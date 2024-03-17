@@ -1,4 +1,4 @@
-import Communication.ProtocolHeader;
+import Communication.ProtocolInformation;
 import Communication.SerializableImage;
 import ServerStuff.ClientEventListener;
 import ServerStuff.ClientHandler;
@@ -15,28 +15,12 @@ public class TestServer {
         Server server = new Server(6969, new ClientEventListener() {
             @Override
             public void onConnection(ClientHandler handler) {
-                handler.send("Hi client".getBytes());
-
-                byte[] response = (byte[]) handler.catchResponse();
-                if (Arrays.equals(response, "Hi server".getBytes())) {
-                    handler.send("OK".getBytes());
-                    System.out.println(handler + " connected");
-
-                    try {
-                        handler.send(ProtocolHeader.Image);
-                        SerializableImage img = new SerializableImage(
-                                ImageIO.read(new File("/home/lasse/Downloads/Implementationsdiagram.png")));
-                        handler.send(img);
-
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
+                System.out.println(handler + " connected");
             }
 
             @Override
             public void receivedMessage(ClientHandler handler, byte[] bytes) {
-                System.out.println(handler + " says: " + new String(bytes));
+
             }
 
             @Override

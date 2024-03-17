@@ -1,5 +1,6 @@
 package ServerStuff;
 
+@SuppressWarnings("unused")
 public interface ClientEventListener {
 
     void onConnection(ClientHandler handler);

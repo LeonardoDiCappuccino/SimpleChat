@@ -1,26 +1,23 @@
 import Communication.Container;
-import Communication.SerializableImage;
 import SQLiteStuff.ChatDB;
-import org.sqlite.SQLiteErrorCode;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.image.BufferedImage;
 import java.io.*;
-import java.lang.reflect.Array;
+import java.util.List;
 
 public class Test {
 
+//    SerializableImage image = new SerializableImage(ImageIO.read(new URI(
+//                    "https://avatars.githubusercontent.com/u/87673486?v=4").toURL()));
+
     public static void main(String[] args) throws IOException {
         ChatDB db = ChatDB.getInstance();
-        Container.Profile profile = db.createUser("Peter", "Passwort1234");
-
-        if (profile != null) {
-            System.out.println(profile.userID() + ": " + profile.username());
-            showImage(profile.profilePicture().getImage());
-        } else System.out.println("Not found");
+        List<Container.Profile> profiles = db.getChats(2);
     }
 
 
@@ -59,6 +56,9 @@ public class Test {
     }
 
     public static void showImage(Image img) {
+        if (img == null)
+            return;
+
         JFrame frame = new JFrame();
         frame.setLayout(new BorderLayout());
         JPanel panel = new JPanel() {
@@ -86,5 +86,14 @@ public class Test {
 
         frame.setVisible(true);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    }
+
+    public static byte[] writeImage(BufferedImage image) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            ImageIO.write(image, "png", out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

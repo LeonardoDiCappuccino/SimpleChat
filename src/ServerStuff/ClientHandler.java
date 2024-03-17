@@ -2,9 +2,11 @@ package ServerStuff;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.List;
 import java.util.concurrent.*;
 
+@SuppressWarnings("unused")
 public class ClientHandler {
 
     private final Socket socket;
@@ -59,7 +61,7 @@ public class ClientHandler {
         }
     }
 
-    private synchronized Object getNextMessage() {
+    private Object getNextMessage() {
         try {
             int length = reader.readInt();
             if (length > 0) {
@@ -87,7 +89,10 @@ public class ClientHandler {
         return null;
     }
 
-    public void send(byte[] bytes) {
+    public synchronized void send(byte[] bytes) {
+        if (!isConnected())
+            throw new RuntimeException(new SocketException("Socket is closed"));
+
         try {
             writer.writeInt(bytes.length);
             //Indicates a send raw byte[] (isObject)
@@ -100,7 +105,10 @@ public class ClientHandler {
         }
     }
 
-    public void send(Serializable object) {
+    public synchronized void send(Serializable object) {
+        if (!isConnected())
+            throw new RuntimeException(new SocketException("Socket is closed"));
+
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              ObjectOutputStream oos = new ObjectOutputStream(bos)) {
 
@@ -124,11 +132,29 @@ public class ClientHandler {
         }
     }
 
-    public Object catchResponse() {
+    public synchronized Object catchResponse() {
+        if (!isConnected())
+            throw new RuntimeException(new SocketException("Socket is closed"));
+
+        if (messageListenerThread != null)
+            if (!messageListenerThread.equals(Thread.currentThread()))
+                throw new RuntimeException(new WrongThreadException(
+                        "'catchResponse' can only be called from 'receivedMessage' and 'onConnection'" +
+                                " methods. Leads to unexpected behavior"));
+
         return getNextMessage();
     }
 
-    public Object catchResponse(int timeout) {
+    public synchronized Object catchResponse(int timeout) {
+        if (!isConnected())
+            throw new RuntimeException(new SocketException("Socket is closed"));
+
+        if (messageListenerThread != null)
+            if (!messageListenerThread.equals(Thread.currentThread()))
+                throw new RuntimeException(new WrongThreadException(
+                        "'catchResponse' can only be called from 'receivedMessage' and 'onConnection'" +
+                                " methods. Leads to unexpected behavior"));
+
         Future<Object> responseCatcher = Executors.newSingleThreadExecutor()
                 .submit(this::getNextMessage);
 
@@ -177,11 +203,11 @@ public class ClientHandler {
     }
 
     private void lostConnectionHandling() {
+        closeConnection();
+
         if (boundedClient != null)
             boundedClient.lostConnection();
         else
             defaultEvent.lostConnection(this);
-
-        closeConnection();
     }
 }

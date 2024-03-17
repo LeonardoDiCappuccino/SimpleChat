@@ -1,5 +1,6 @@
 package SQLiteStuff;
 
+@SuppressWarnings("unused")
 public enum DBType {
 
     Integer(4),

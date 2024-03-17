@@ -9,6 +9,9 @@ public class User extends Client {
     public User(Container.Profile profile, ClientHandler boundedHandler) {
         super(boundedHandler);
         userID = profile.userID();
+
+        //Send user his profile
+        send(profile);
     }
 
     @Override
@@ -18,6 +21,7 @@ public class User extends Client {
 
     @Override
     public void receivedMessage(Object object) {
+
     }
 
     @Override
